@@ -16,11 +16,33 @@ class Redis implements Adapter
     private static $defaultOptions = array();
     private static $prefix = 'PROMETHEUS_';
 
+    /**
+     * @var array|null If this is null, the redis instance is supposed to be configured elsewhere.
+     */
     private $options;
+
     private $redis;
 
-    public function __construct(array $options = array())
+    /**
+     * @param array|object $options
+     */
+    public function __construct($options = null)
     {
+        if (is_object($options)
+            && method_exists($options, 'connect')
+        ) {
+            // We assume this is a redis instance
+            $this->redis = $options;
+
+            return;
+        }
+
+        if (null === $options) {
+            $options = array();
+        } elseif (!is_array($options)) {
+            throw new \InvalidArgumentException('$options must either be an options array or a redis instance.');
+        }
+
         // with php 5.3 we cannot initialize the options directly on the field definition
         // so we initialize them here for now
         if (!isset(self::$defaultOptions['host'])) {
@@ -88,6 +110,10 @@ class Redis implements Adapter
      */
     private function openConnection()
     {
+        if (null === $this->options) {
+            return;
+        }
+
         try {
             if ($this->options['persistent_connections']) {
                 @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout']);
