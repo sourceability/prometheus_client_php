@@ -33,7 +33,7 @@ class Redis implements Adapter
     private static $prefix = 'PROMETHEUS_';
 
     /**
-     * @var array
+     * @var array|null If this is null, the redis instance is supposed to be configured elsewhere.
      */
     private $options = [];
 
@@ -49,10 +49,23 @@ class Redis implements Adapter
 
     /**
      * Redis constructor.
-     * @param array $options
+     * @param array|object $options
      */
-    public function __construct(array $options = [])
+    public function __construct(array $options = null)
     {
+        if (is_object($options) && method_exists($options, 'connect')) {
+            // We assume this is a redis instance
+            $this->redis = $options;
+
+            return;
+        }
+
+        if (null === $options) {
+            $options = [];
+        } elseif (!is_array($options)) {
+            throw new \InvalidArgumentException('$options must either be an options array or a redis instance.');
+        }
+
         $this->options = array_merge(self::$defaultOptions, $options);
         $this->redis = new \Redis();
     }
@@ -143,6 +156,10 @@ class Redis implements Adapter
      */
     private function connectToServer(): bool
     {
+        if (null === $this->options) {
+            return;
+        }
+
         try {
             if ($this->options['persistent_connections']) {
                 return $this->redis->pconnect(
