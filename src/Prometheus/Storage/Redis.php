@@ -193,8 +193,7 @@ class Redis implements Adapter
         unset($metaData['value']);
         unset($metaData['labelValues']);
 
-        $this->redis->eval(
-            <<<LUA
+        $this->redisEval(<<<LUA
 local increment = redis.call('hIncrByFloat', KEYS[1], ARGV[1], ARGV[3])
 redis.call('hIncrBy', KEYS[1], ARGV[2], 1)
 if increment == ARGV[3] then
@@ -226,8 +225,7 @@ LUA
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $this->redis->eval(
-            <<<LUA
+        $this->redisEval(<<<LUA
 local result = redis.call(ARGV[1], KEYS[1], ARGV[2], ARGV[3])
 
 if ARGV[1] == 'hSet' then
@@ -266,8 +264,7 @@ LUA
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $this->redis->eval(
-            <<<LUA
+        $result = $this->redisEval(<<<LUA
 local result = redis.call(ARGV[1], KEYS[1], ARGV[3], ARGV[2])
 if result == tonumber(ARGV[2]) then
     redis.call('hMSet', KEYS[1], '__meta', ARGV[4])
@@ -449,4 +446,26 @@ LUA
     {
         return implode(':', [self::$prefix, $data['type'], $data['name']]);
     }
+
+    private function redisEval($script, $args = array(), $numKeys = 0)
+    {
+        if (is_subclass_of($this->redis, 'Predis\ClientInterface')) {
+            return call_user_func_array(
+                [
+                    $this->redis,
+                    'eval',
+                ],
+                array_merge(
+                    [
+                        $script,
+                        $numKeys
+                    ],
+                    $args
+                )
+            );
+        }
+
+        return $this->redis->eval($script, $args, $numKeys);
+    }
+
 }
