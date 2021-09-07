@@ -157,7 +157,7 @@ class Redis implements Adapter
     private function connectToServer(): bool
     {
         if (null === $this->options) {
-            return;
+            return false;
         }
 
         try {
