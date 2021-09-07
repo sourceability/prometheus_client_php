@@ -51,7 +51,7 @@ class Redis implements Adapter
      * Redis constructor.
      * @param array|object $options
      */
-    public function __construct(array $options = null)
+    public function __construct(array|object $options = null)
     {
         if (is_object($options) && method_exists($options, 'connect')) {
             // We assume this is a redis instance
